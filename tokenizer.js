@@ -1,217 +1,198 @@
-// =====================================================
-// 1. LOAD WORDS.JSON
-// =====================================================
-export async function loadWords() {
-    const res = await fetch("data/words.json");
-    if (!res.ok) throw new Error("Failed to load words.json");
-    return await res.json();
+// tokenizer.js
+// Pure JS tokenizer + noun splitter (no libs). Exports: loadWords, tokenize, splitNoun, processText
+
+// ---------- Load dictionary ----------
+export async function loadWords(path = "data/words.json") {
+  const res = await fetch(path);
+  if (!res.ok) throw new Error("Failed to load words.json");
+  return await res.json();
 }
 
-// =====================================================
-// 2. TOKENIZE TEXT INTO WORDS
-// =====================================================
+// ---------- Simple character-level tokenizer ----------
+// returns lowercase word tokens (letters a-z)
 export function tokenize(text) {
-    let tokens = [];
-    let current = "";
-
-    for (let i = 0; i < text.length; i++) {
-        let c = text[i].toLowerCase();
-
-        if (c >= "a" && c <= "z") {
-            current += c;
-        } else {
-            if (current.length > 0) {
-                tokens.push(current);
-                current = "";
-            }
-        }
+  const tokens = [];
+  let cur = "";
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const lower = ch.toLowerCase();
+    if (lower >= "a" && lower <= "z") {
+      cur += lower;
+    } else {
+      if (cur.length) {
+        tokens.push(cur);
+        cur = "";
+      }
     }
-
-    if (current.length > 0) tokens.push(current);
-    return tokens;
+  }
+  if (cur.length) tokens.push(cur);
+  return tokens;
 }
 
-// =====================================================
-// 3. CLASSIFY USING splitNoun()
-// =====================================================
-export function classify(tokens, words) {
-    let result = [];
-
-    for (let t of tokens) {
-        let tree = splitNoun(t, words);
-        result.push(tree);
-    }
-
-    return result;
+// ---------- Helper: quick noun check ----------
+function isNoun(word, words) {
+  if (!word || word.length === 0) return false;
+  const first = word[0];
+  const list = words.nouns?.[first];
+  if (!list) return false;
+  return list.includes(word);
 }
 
-// =====================================================
-// HELPER: check if noun exists
-// =====================================================
-function nounExists(word, words) {
-    let first = word[0];
-    if (!words.nouns[first]) return false;
-    return words.nouns[first].includes(word);
+// ---------- splitNoun: returns the breakdown tree for ONE word ----------
+export function splitNoun(wordOrig, words) {
+  const word = (wordOrig || "").toLowerCase();
+  const tree = {
+    original: wordOrig,
+    success: false,
+    parts: []
+  };
+
+  if (!word) {
+    tree.parts.push({ value: "", type: "unknown", children: [] });
+    return tree;
+  }
+
+  // quick hit: exact noun
+  if (isNoun(word, words)) {
+    tree.success = true;
+    tree.parts.push({ value: word, type: "noun", children: [] });
+    return tree;
+  }
+
+  // 1) Irregular plurals map
+  const irr = words.irregular_plurals || {};
+  if (irr[word]) {
+    tree.success = true;
+    tree.parts.push({
+      value: irr[word],
+      type: "plural_root_irregular",
+      children: []
+    });
+    return tree;
+  }
+
+  // 2) Regular plural rules (try multiple candidates and check dictionary)
+  // order: ies -> y, ves -> f/fe, es, s
+  const tryRoots = [];
+
+  if (word.endsWith("ies") && word.length > 3) {
+    tryRoots.push({ root: word.slice(0, -3) + "y", suffix: "ies" });
+  }
+  if (word.endsWith("ves") && word.length > 3) {
+    tryRoots.push({ root: word.slice(0, -3) + "f", suffix: "ves" });
+    tryRoots.push({ root: word.slice(0, -3) + "fe", suffix: "ves" });
+  }
+  if (word.endsWith("es") && word.length > 2) {
+    tryRoots.push({ root: word.slice(0, -2), suffix: "es" });
+  }
+  if (word.endsWith("s") && word.length > 1) {
+    tryRoots.push({ root: word.slice(0, -1), suffix: "s" });
+  }
+
+  for (const candidate of tryRoots) {
+    if (isNoun(candidate.root, words)) {
+      tree.success = true;
+      tree.parts.push({
+        value: candidate.root,
+        type: "plural_root",
+        children: []
+      });
+      tree.parts.push({
+        value: candidate.suffix,
+        type: "plural_suffix",
+        children: []
+      });
+      return tree;
+    }
+  }
+
+  // 3) Prefix rule B: split only if remainder is a noun
+  const prefixes = words.prefixes || [];
+  for (const p of prefixes) {
+    if (word.startsWith(p) && p.length < word.length - 1) {
+      const rest = word.slice(p.length);
+      if (isNoun(rest, words)) {
+        tree.success = true;
+        tree.parts.push({ value: p, type: "prefix", children: [] });
+        tree.parts.push({ value: rest, type: "noun", children: [] });
+        return tree;
+      }
+    }
+  }
+
+  // 4) Suffix rule B: split only if left part is a noun
+  const suffixes = words.suffixes || [];
+  for (const s of suffixes) {
+    if (word.endsWith(s) && s.length < word.length - 1) {
+      const left = word.slice(0, word.length - s.length);
+      if (isNoun(left, words)) {
+        tree.success = true;
+        tree.parts.push({ value: left, type: "noun", children: [] });
+        tree.parts.push({ value: s, type: "suffix", children: [] });
+        return tree;
+      }
+    }
+  }
+
+  // 5) Compound splitting (LOOSE): try every split; prefer both parts nouns,
+  // if none, accept split where one side is in compound_roots
+  const compoundRoots = new Set(words.compound_roots || []);
+  const len = word.length;
+  const candidates = [];
+
+  for (let i = 2; i <= len - 2; i++) {
+    const left = word.slice(0, i);
+    const right = word.slice(i);
+
+    const leftIsN = isNoun(left, words);
+    const rightIsN = isNoun(right, words);
+    const leftIsRoot = compoundRoots.has(left);
+    const rightIsRoot = compoundRoots.has(right);
+
+    if (leftIsN && rightIsN) {
+      // best candidate
+      candidates.unshift({ left, right, score: 3 });
+    } else if (leftIsN && rightIsRoot) {
+      candidates.push({ left, right, score: 2 });
+    } else if (leftIsRoot && rightIsN) {
+      candidates.push({ left, right, score: 2 });
+    } else if (leftIsRoot && rightIsRoot) {
+      candidates.push({ left, right, score: 1 });
+    } else {
+      // loose rule: allow split if each side length >=3 (avoid tiny splits)
+      if (left.length >= 3 && right.length >= 3) {
+        candidates.push({ left, right, score: 0 });
+      }
+    }
+  }
+
+  // pick best candidate by highest score, else none
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.score - a.score); // highest score first
+    const pick = candidates[0];
+    tree.success = true;
+    tree.parts.push({ value: pick.left, type: "compound_root", children: [] });
+    tree.parts.push({ value: pick.right, type: "compound_root", children: [] });
+    return tree;
+  }
+
+  // 6) fallback: return unknown single part
+  tree.parts.push({ value: word, type: "unknown", children: [] });
+  tree.success = false;
+  return tree;
 }
 
-// =====================================================
-// HELPER: create tree node
-// =====================================================
-function node(value, type, children = []) {
-    return { value, type, children };
+// ---------- processText: tokenize sentence and split each token ----------
+export async function processText(text, dictPath = "data/words.json") {
+  const words = await loadWords(dictPath);
+  const tokens = tokenize(text);
+  const results = tokens.map(tok => splitNoun(tok, words));
+  return results;
 }
 
-// =====================================================
-// 4. MAIN: SPLIT NOUN INTO PREFIX / ROOT / SUFFIX / PLURAL / COMPOUND
-// =====================================================
-export function splitNoun(word, words) {
-    let original = word.toLowerCase();
-
-    // 1) irregular plural
-    if (words.irregular_plurals[original]) {
-        return {
-            original,
-            success: true,
-            parts: [
-                node(words.irregular_plurals[original], "plural_root_irregular")
-            ]
-        };
-    }
-
-    // 2) regular plural
-    let reg = checkRegularPlural(original, words);
-    if (reg) return reg;
-
-    // 3) prefix rule B
-    for (let p of words.prefixes) {
-        if (original.startsWith(p)) {
-            let rest = original.slice(p.length);
-            if (nounExists(rest, words)) {
-                return {
-                    original,
-                    success: true,
-                    parts: [
-                        node(p, "prefix"),
-                        node(rest, "noun")
-                    ]
-                };
-            }
-        }
-    }
-
-    // 4) suffix rule B
-    for (let s of words.suffixes) {
-        if (original.endsWith(s)) {
-            let root = original.slice(0, original.length - s.length);
-            if (nounExists(root, words)) {
-                return {
-                    original,
-                    success: true,
-                    parts: [
-                        node(root, "noun"),
-                        node(s, "suffix")
-                    ]
-                };
-            }
-        }
-    }
-
-    // 5) compound splitting (loose mode)
-    for (let i = 2; i < original.length - 1; i++) {
-        let left = original.slice(0, i);
-        let right = original.slice(i);
-
-        if (nounExists(left, words) && nounExists(right, words)) {
-            return {
-                original,
-                success: true,
-                parts: [
-                    node(left, "compound_root"),
-                    node(right, "compound_root")
-                ]
-            };
-        }
-    }
-
-    // fallback
-    return {
-        original,
-        success: false,
-        parts: [node(original, "unknown")]
-    };
-}
-
-// =====================================================
-// REGULAR PLURAL CHECKS
-// =====================================================
-function checkRegularPlural(word, words) {
-    // -ies → y
-    if (word.endsWith("ies")) {
-        let root = word.slice(0, -3) + "y";
-        if (nounExists(root, words))
-            return {
-                original: word,
-                success: true,
-                parts: [
-                    node(root, "plural_root"),
-                    node("ies", "plural_suffix")
-                ]
-            };
-    }
-
-    // -ves → f or fe
-    if (word.endsWith("ves")) {
-        let root1 = word.slice(0, -3) + "f";
-        let root2 = word.slice(0, -3) + "fe";
-
-        if (nounExists(root1, words))
-            return {
-                original: word,
-                success: true,
-                parts: [
-                    node(root1, "plural_root"),
-                    node("ves", "plural_suffix")
-                ]
-            };
-
-        if (nounExists(root2, words))
-            return {
-                original: word,
-                success: true,
-                parts: [
-                    node(root2, "plural_root"),
-                    node("ves", "plural_suffix")
-                ]
-            };
-    }
-
-    // -es
-    if (word.endsWith("es")) {
-        let root = word.slice(0, -2);
-        if (nounExists(root, words))
-            return {
-                original: word,
-                success: true,
-                parts: [
-                    node(root, "plural_root"),
-                    node("es", "plural_suffix")
-                ]
-            };
-    }
-
-    // -s
-    if (word.endsWith("s")) {
-        let root = word.slice(0, -1);
-        if (nounExists(root, words))
-            return {
-                original: word,
-                success: true,
-                parts: [
-                    node(root, "plural_root"),
-                    node("s", "plural_suffix")
-                ]
-            };
-    }
-
-    return null;
+// ---------- small helper for quick testing in console ----------
+export async function demo(text) {
+  const out = await processText(text);
+  console.log(JSON.stringify(out, null, 2));
+  return out;
 }
