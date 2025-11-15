@@ -2,19 +2,21 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
+import cors from "cors";
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use(express.static("."));
+app.use(cors());             // allow requests from any origin
+app.use(express.json());      // parse JSON bodies
 
+// Save endpoint
 app.post("/save", (req, res) => {
   const { text, analyzed } = req.body;
   if (!text) return res.status(400).json({ success: false, error: "No text provided" });
 
   const filePath = path.join("storage", "inputs.txt");
-  const line = JSON.stringify({ text, analyzed }) + "\n";
+  const line = JSON.stringify({ text, analyzed, timestamp: new Date().toISOString() }) + "\n";
 
   fs.appendFile(filePath, line, err => {
     if (err) {
