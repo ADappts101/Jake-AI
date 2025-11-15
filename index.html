@@ -1,18 +1,15 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="script.js"></script>
+</head>
 <body>
-  <textarea id="t" rows="4" cols="40">Megastore boxes blackboard children react</textarea>
-  <button id="go">Run</button>
-  <pre id="out"></pre>
-
-  <script type="module">
-    import { processText } from "./tokenizer.js";
-
-    document.getElementById("go").onclick = async () => {
-      const txt = document.getElementById("t").value;
-      const res = await processText(txt); // uses data/words.json
-      document.getElementById("out").textContent = JSON.stringify(res, null, 2);
-    };
-  </script>
+  <div class="wrapper">
+    <h1>AI Trainer</h1>
+    <textarea id="userInput" placeholder="Type anything..."></textarea>
+    <button id="saveBtn">Save</button>
+    <div id="response"></div>
+  </div>
 </body>
 </html>
