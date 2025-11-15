@@ -1,11 +1,15 @@
+// =====================================================
+// 1. LOAD WORDS.JSON
+// =====================================================
 export async function loadWords() {
     const res = await fetch("data/words.json");
+    if (!res.ok) throw new Error("Failed to load words.json");
     return await res.json();
 }
 
-// -----------------------------------------------------------
-// TOKENIZER (split text → words)
-// -----------------------------------------------------------
+// =====================================================
+// 2. TOKENIZE TEXT INTO WORDS
+// =====================================================
 export function tokenize(text) {
     let tokens = [];
     let current = "";
@@ -27,245 +31,187 @@ export function tokenize(text) {
     return tokens;
 }
 
-// -----------------------------------------------------------
-// MAIN CLASSIFIER (token → noun tree)
-// -----------------------------------------------------------
+// =====================================================
+// 3. CLASSIFY USING splitNoun()
+// =====================================================
 export function classify(tokens, words) {
-    let results = [];
+    let result = [];
 
     for (let t of tokens) {
-        let result = splitNoun(t, words);
-        results.push(result);
+        let tree = splitNoun(t, words);
+        result.push(tree);
     }
 
-    return results;
+    return result;
 }
 
-// -----------------------------------------------------------
-// WORD SPLITTER TREE LOGIC
-// -----------------------------------------------------------
-function splitNoun(word, dict) {
-    let original = word;
+// =====================================================
+// HELPER: check if noun exists
+// =====================================================
+function nounExists(word, words) {
+    let first = word[0];
+    if (!words.nouns[first]) return false;
+    return words.nouns[first].includes(word);
+}
 
-    // 1. Irregular plural
-    if (dict.irregular_plurals[word]) {
+// =====================================================
+// HELPER: create tree node
+// =====================================================
+function node(value, type, children = []) {
+    return { value, type, children };
+}
+
+// =====================================================
+// 4. MAIN: SPLIT NOUN INTO PREFIX / ROOT / SUFFIX / PLURAL / COMPOUND
+// =====================================================
+export function splitNoun(word, words) {
+    let original = word.toLowerCase();
+
+    // 1) irregular plural
+    if (words.irregular_plurals[original]) {
         return {
             original,
             success: true,
             parts: [
-                {
-                    value: dict.irregular_plurals[word],
-                    type: "plural_root_irregular",
-                    children: []
-                }
+                node(words.irregular_plurals[original], "plural_root_irregular")
             ]
         };
     }
 
-    // 2. Regular plural
-    let pluralCheck = checkRegularPlural(word, dict);
-    if (pluralCheck) return pluralCheck;
+    // 2) regular plural
+    let reg = checkRegularPlural(original, words);
+    if (reg) return reg;
 
-    // 3. Prefix rule B
-    let prefixCheck = checkPrefix(word, dict);
-    if (prefixCheck) return prefixCheck;
+    // 3) prefix rule B
+    for (let p of words.prefixes) {
+        if (original.startsWith(p)) {
+            let rest = original.slice(p.length);
+            if (nounExists(rest, words)) {
+                return {
+                    original,
+                    success: true,
+                    parts: [
+                        node(p, "prefix"),
+                        node(rest, "noun")
+                    ]
+                };
+            }
+        }
+    }
 
-    // 4. Suffix rule B
-    let suffixCheck = checkSuffix(word, dict);
-    if (suffixCheck) return suffixCheck;
+    // 4) suffix rule B
+    for (let s of words.suffixes) {
+        if (original.endsWith(s)) {
+            let root = original.slice(0, original.length - s.length);
+            if (nounExists(root, words)) {
+                return {
+                    original,
+                    success: true,
+                    parts: [
+                        node(root, "noun"),
+                        node(s, "suffix")
+                    ]
+                };
+            }
+        }
+    }
 
-    // 5. Compound split (loose)
-    let compoundCheck = checkCompound(word, dict);
-    if (compoundCheck) return compoundCheck;
+    // 5) compound splitting (loose mode)
+    for (let i = 2; i < original.length - 1; i++) {
+        let left = original.slice(0, i);
+        let right = original.slice(i);
 
-    // 6. Fallback
+        if (nounExists(left, words) && nounExists(right, words)) {
+            return {
+                original,
+                success: true,
+                parts: [
+                    node(left, "compound_root"),
+                    node(right, "compound_root")
+                ]
+            };
+        }
+    }
+
+    // fallback
     return {
         original,
         success: false,
-        parts: [
-            {
-                value: original,
-                type: "unknown",
-                children: []
-            }
-        ]
+        parts: [node(original, "unknown")]
     };
 }
 
-// -----------------------------------------------------------
-// CHECK REGULAR PLURAL
-// -----------------------------------------------------------
-function checkRegularPlural(word, dict) {
-
-    function isNoun(w) {
-        let c = w[0];
-        if (!dict.nouns[c]) return false;
-        return dict.nouns[c].includes(w);
-    }
-
-    // ies → y
+// =====================================================
+// REGULAR PLURAL CHECKS
+// =====================================================
+function checkRegularPlural(word, words) {
+    // -ies → y
     if (word.endsWith("ies")) {
         let root = word.slice(0, -3) + "y";
-        if (isNoun(root)) {
+        if (nounExists(root, words))
             return {
                 original: word,
                 success: true,
                 parts: [
-                    { value: root, type: "plural_root", children: [] },
-                    { value: "ies", type: "plural_suffix", children: [] }
+                    node(root, "plural_root"),
+                    node("ies", "plural_suffix")
                 ]
             };
-        }
     }
 
-    // ves → f/fe
+    // -ves → f or fe
     if (word.endsWith("ves")) {
-        let root_f = word.slice(0, -3) + "f";
-        let root_fe = word.slice(0, -3) + "fe";
+        let root1 = word.slice(0, -3) + "f";
+        let root2 = word.slice(0, -3) + "fe";
 
-        if (isNoun(root_f)) {
+        if (nounExists(root1, words))
             return {
                 original: word,
                 success: true,
                 parts: [
-                    { value: root_f, type: "plural_root", children: [] },
-                    { value: "ves", type: "plural_suffix", children: [] }
+                    node(root1, "plural_root"),
+                    node("ves", "plural_suffix")
                 ]
             };
-        }
 
-        if (isNoun(root_fe)) {
+        if (nounExists(root2, words))
             return {
                 original: word,
                 success: true,
                 parts: [
-                    { value: root_fe, type: "plural_root", children: [] },
-                    { value: "ves", type: "plural_suffix", children: [] }
+                    node(root2, "plural_root"),
+                    node("ves", "plural_suffix")
                 ]
             };
-        }
     }
 
-    // es
+    // -es
     if (word.endsWith("es")) {
         let root = word.slice(0, -2);
-        if (isNoun(root)) {
+        if (nounExists(root, words))
             return {
                 original: word,
                 success: true,
                 parts: [
-                    { value: root, type: "plural_root", children: [] },
-                    { value: "es", type: "plural_suffix", children: [] }
+                    node(root, "plural_root"),
+                    node("es", "plural_suffix")
                 ]
             };
-        }
     }
 
-    // s
+    // -s
     if (word.endsWith("s")) {
         let root = word.slice(0, -1);
-        if (isNoun(root)) {
+        if (nounExists(root, words))
             return {
                 original: word,
                 success: true,
                 parts: [
-                    { value: root, type: "plural_root", children: [] },
-                    { value: "s", type: "plural_suffix", children: [] }
+                    node(root, "plural_root"),
+                    node("s", "plural_suffix")
                 ]
             };
-        }
     }
 
-    return null;
-}
-
-// -----------------------------------------------------------
-// CHECK PREFIX RULE B
-// -----------------------------------------------------------
-function checkPrefix(word, dict) {
-
-    function isNoun(w) {
-        let c = w[0];
-        if (!dict.nouns[c]) return false;
-        return dict.nouns[c].includes(w);
-    }
-
-    for (let p of dict.prefixes) {
-        if (word.startsWith(p)) {
-            let rest = word.slice(p.length);
-            if (rest.length > 0 && isNoun(rest)) {
-                return {
-                    original: word,
-                    success: true,
-                    parts: [
-                        { value: p, type: "prefix", children: [] },
-                        { value: rest, type: "noun", children: [] }
-                    ]
-                };
-            }
-        }
-    }
-    return null;
-}
-
-// -----------------------------------------------------------
-// CHECK SUFFIX RULE B
-// -----------------------------------------------------------
-function checkSuffix(word, dict) {
-
-    function isNoun(w) {
-        let c = w[0];
-        if (!dict.nouns[c]) return false;
-        return dict.nouns[c].includes(w);
-    }
-
-    for (let s of dict.suffixes) {
-        if (word.endsWith(s)) {
-            let root = word.slice(0, -s.length);
-            if (root.length > 0 && isNoun(root)) {
-                return {
-                    original: word,
-                    success: true,
-                    parts: [
-                        { value: root, type: "noun", children: [] },
-                        { value: s, type: "suffix", children: [] }
-                    ]
-                };
-            }
-        }
-    }
-    return null;
-}
-
-// -----------------------------------------------------------
-// CHECK COMPOUND (LOOSE MODE)
-// -----------------------------------------------------------
-function checkCompound(word, dict) {
-
-    function isNoun(w) {
-        let c = w[0];
-        if (!dict.nouns[c]) return false;
-        return dict.nouns[c].includes(w);
-    }
-
-    function isRoot(w) {
-        return dict.compound_roots.includes(w) || isNoun(w);
-    }
-
-    for (let i = 1; i < word.length - 1; i++) {
-        let left = word.slice(0, i);
-        let right = word.slice(i);
-
-        if (isRoot(left) && isRoot(right)) {
-            return {
-                original: word,
-                success: true,
-                parts: [
-                    { value: left, type: "compound_root", children: [] },
-                    { value: right, type: "compound_root", children: [] }
-                ]
-            };
-        }
-    }
     return null;
 }
