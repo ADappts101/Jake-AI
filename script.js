@@ -1,22 +1,49 @@
-import { tokenize } from "./tokenizer.js";
+// script.js
+import { loadWords, tokenize, splitNoun } from "./tokenizer.js";
 
-const inputEl = document.getElementById("userInput");
+let dictionary = null;
+
+// load dictionary once
+async function init() {
+  dictionary = await loadWords("data/words.json");
+}
+
+init();
+
+// UI elements
+const input = document.getElementById("userInput");
 const saveBtn = document.getElementById("saveBtn");
-const responseEl = document.getElementById("response");
+const responseBox = document.getElementById("response");
 
+// When clicking SAVE
 saveBtn.addEventListener("click", async () => {
-  const text = inputEl.value.trim();
+  const text = input.value.trim();
+
   if (!text) {
-    responseEl.textContent = "Enter something first.";
+    responseBox.textContent = "No input.";
     return;
   }
 
-  // tokenize text
+  // Step 1: tokenize
   const tokens = tokenize(text);
 
-  // show result
-  responseEl.innerHTML = `
-    <div><strong>Tokens:</strong> ${JSON.stringify(tokens)}</div>
-  `;
-});
+  // Step 2: split each noun attempt
+  const analyzed = tokens.map(t => splitNoun(t, dictionary));
 
+  // Show on page
+  responseBox.textContent = JSON.stringify(analyzed, null, 2);
+
+  // Step 3: send to backend (server.js) to store in inputs.txt
+  try {
+    const res = await fetch("/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, analyzed })
+    });
+
+    const out = await res.json();
+    console.log("Server:", out);
+  } catch (err) {
+    console.error("Server save failed:", err);
+  }
+});
