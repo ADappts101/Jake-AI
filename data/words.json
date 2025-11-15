@@ -1,46 +1,107 @@
 {
   "nouns": {
-    "a": ["apple", "arm", "actor", "air"],
-    "b": ["ball", "box", "board"],
-    "f": ["foot", "food"],
-    "r": ["room"],
-    "s": ["store"]
+    "a": [
+      "apple","air","arm","actor","angle","animal","area","army","arch","arrow","aunt","agent","artist","award","atom","arena","album","axis","aisle","ankle","apron","altar","ant","archer","ash","anchor","author","autumn","archway"
+    ],
+    "b": [
+      "ball","box","board","bird","boat","book","bank","bag","belt","bell","bone","branch","bridge","bucket","bus","butter","bottle","brick","button","bowl","bench","breeze","bar","barrel","band","beach","blade","boot","barn"
+    ],
+    "c": [
+      "cat","car","cup","cloud","crowd","candle","cake","castle","circle","coin","cable","camera","chain","chair","cheese","city","cream","crab","crow","crown","cactus","camel","canoe","cave","chest","church","clock","cloth","couch"
+    ],
+    "d": [
+      "dog","door","desk","dust","drum","dance","date","dish","doll","duck","dew","draft","dawn","drape","dome","donkey","dirt","drop","drawer","drill","dune","dungeon","dent","diamond","dragon","drizzle","daisy","diner","diner","dock"
+    ],
+    "e": [
+      "egg","ear","earth","engine","energy","entrance","eye","echo","event","ember","eagle","elbow","edge","estate","emotion","exit","ember","exhibit","effort","error","editor","envy","eden","elevator","engineer","elk","emperor","eclipse","era"
+    ],
+    "f": [
+      "foot","food","forest","floor","feather","farm","fish","fork","field","fire","friend","fog","fan","fact","face","flame","flower","frame","flag","fruit","frost","fence","flute","film","foil","fleet","fair","fiber","figure"
+    ],
+    "g": [
+      "game","garden","gate","girl","glass","goat","gold","grain","grass","ground","group","gun","grape","guitar","goal","glove","gas","ghost","gear","giant","gland","granite","globe","gale","garage","gem","grid","gown","guava"
+    ],
+    "h": [
+      "house","hand","hat","heart","hill","horse","hall","hair","hammer","harbor","honey","hose","horn","heat","home","heel","habit","harp","hazel","husk","herd","hive","hook","horizon","hut","hull","hour","human","hunter"
+    ],
+    "i": [
+      "ice","idea","iron","island","image","ink","injury","insect","issue","ivory","item","industry","impact","interval","income","insight","iris","idol","identity","instrument","illusion","inflation","inch","ion","igloo","interest","impulse","instance","item","ivy"
+    ],
+    "j": [
+      "jar","jam","jet","jewel","judge","jungle","jacket","job","joke","journal","juice","journey","junction","jeep","jelly","jaguar","jockey","jersey","javelin","jury","jigsaw","jingle","jail","jade","jolt","jug","junction","jetty","journalist","jewelery"
+    ],
+    "k": [
+      "key","king","knee","knife","kite","kit","kid","kernel","kettle","knot","koala","kayak","keyboard","keeper","kiosk","kilt","kingdom","kilo","kitchen","kitten","knight","knuckle","keg","kelp","karate","karma","kay","krypton","kraal","kettle"
+    ],
+    "l": [
+      "lamp","land","lake","leaf","leg","line","lion","list","lock","lunch","layer","limit","link","league","law","lung","lizard","log","lace","labor","ladder","lakehouse","linen","loop","latch","lotus","loaf","label","lance","lamprey"
+    ],
+    "m": [
+      "man","mouse","mountain","machine","map","market","metal","milk","movie","mirror","moon","moment","motor","monkey","mansion","magnet","mask","meal","mall","mint","mud","museum","mill","mat","marine","mirage","mortar","marble","meadow","melon"
+    ],
+    "n": [
+      "night","nose","nut","name","needle","net","nest","north","nail","nation","noise","neck","number","note","navy","nerve","nursery","niche","nectar","napkin","novel","ninja","nymph","narrative","nectarine","network","nebula","nobody","notion","nursery"
+    ],
+    "o": [
+      "ox","oil","oven","opera","ocean","orange","oxygen","orbit","office","organ","object","option","order","oak","owl","oasis","outlet","outcome","olive","onion","omelet","orchard","oracle","officer","outpost","odor","outfit","oval","ore","opinion"
+    ],
+    "p": [
+      "pen","paper","pan","pear","pipe","plant","plate","plank","plane","park","pump","pencil","pocket","point","party","path","planet","powder","prize","prison","page","partner","pillow","pistol","package","pattern","puddle","pasture","pebble","pond"
+    ],
+    "q": [
+      "queen","question","quilt","quill","quartz","quote","quarry","quantity","queue","quest","quiver","quark","quarter","quake","quillwork","quota","qubit","quadrant","quinoa","quirk","quip","queenhood","quench","query","quartzite","quarryman","quicklime","quadrille","quail","quoin"
+    ],
+    "r": [
+      "room","river","rock","rope","ring","rice","road","rain","radio","rat","root","rose","rule","ruler","ridge","ridgeway","roof","razor","raven","rabbit","rack","rail","rifle","riddle","resin","reef","reserve","ripple","ransom"
+    ],
+    "s": [
+      "store","sun","sand","sea","salt","sock","stone","star","skin","snow","ship","shell","shoe","street","sword","scale","seed","steam","shadow","shelf","signal","singer","syrup","symbol","storm","skull","spark","spoon","spice","spider"
+    ],
+    "t": [
+      "toy","table","tree","tail","tank","tower","town","train","team","tag","text","time","toe","trail","tiger","ticket","tool","tube","tunnel","torch","twig","towel","tempest","task","twin","treasure","trace","thread","throne","trap"
+    ],
+    "u": [
+      "umbrella","unit","use","urn","unicorn","utility","utensil","universe","uphill","updraft","uplift","uproar","upgrade","undertone","undertow","underpass","underdog","usher","ulna","ulcer","utopia","uranium","urchin","uniform","uplink","uptake","update","upland","ultra","umpire"
+    ],
+    "v": [
+      "van","vase","village","valley","value","vapor","vision","voice","voicebox","vehicle","vine","visitor","victory","vault","veil","velvet","volcano","vortex","veteran","vessel","vineyard","virus","violet","vector","vigor","vista","volume","vinegar","visor","vacuum"
+    ],
+    "w": [
+      "water","wind","wall","wolf","war","wing","wheel","winter","wood","wheelbarrow","waist","watch","wave","wax","wheat","whale","whip","wish","world","worm","wrist","writer","window","warehouse","wagon","warden","willow","wool","wrench","wrench"
+    ],
+    "x": [
+      "xylophone","xenon","xylem","xenolith","xerox","xylitol","xenopod","xenocrat","xenograft","xylocarp","xylorimba","xyster","xenolith","xenops","xerosis","xerophyte","xiphos","xenogenesis","xenophile","xenagogue","xylidine","xylophage","xenolith","xenonlight","xenobot","xenonlamp","xenonflash","xystus","xenonbeam","xenopsbird"
+    ],
+    "y": [
+      "yarn","yard","yak","yacht","youth","year","yield","yolk","yawn","yeti","yodel","yule","yarnball","yardstick","yarrow","yesteryear","yip","yodeler","yod","yam","yap","yeast","yonder","yodelsong","yogurt","yogi","yoke","yarrowroot","yodeltone","yunnan"
+    ],
+    "z": [
+      "zebra","zone","zero","zinc","zipper","zombie","zoo","zeal","zephyr","zodiac","zeppelin","zircon","zither","zooid","zoologist","zookeeper","zucchini","zamboni","zaratite","zenith","zeolite","zirconium","zipline","zitherplayer","ziggurat","zinnia","zinger","zonal","zloty","zygote"
+    ]
   },
 
   "irregular_plurals": {
     "children": "child",
     "men": "man",
     "women": "woman",
-    "mice": "mouse"
+    "mice": "mouse",
+    "teeth": "tooth",
+    "feet": "foot",
+    "geese": "goose",
+    "people": "person",
+    "oxen": "ox"
   },
 
   "prefixes": [
-    "anti",
-    "auto",
-    "bio",
-    "co",
-    "sub",
-    "mega",
-    "micro",
-    "re"
+    "anti","auto","bio","co","counter","cyber","dis","eco","exo","geo","hetero","homo","hyper",
+    "inter","intra","mega","micro","mono","multi","neo","poly","post","pre","pro","re","sub","super","trans","ultra"
   ],
 
   "suffixes": [
-    "ness",
-    "ship",
-    "ment",
-    "er",
-    "or",
-    "ology"
+    "ion","tion","sion","ness","ment","ship","hood","ism","ist","er","or","ity","ty","age","ology","graphy","gram","ware","dom","ance","ence","acy","ation","ure","ade"
   ],
 
   "compound_roots": [
-    "air",
-    "black",
-    "foot",
-    "bed",
-    "room",
-    "board",
-    "ball"
+    "air","black","foot","bed","room","board","ball","star","stone","snow","water","sun","fire","earth","wind","forest","mountain","sea","rain","book"
   ]
 }
