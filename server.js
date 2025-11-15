@@ -2,48 +2,34 @@
 import express from "express";
 import fs from "fs";
 import path from "path";
-import bodyParser from "body-parser";
 
 const app = express();
 const PORT = 3000;
 
-// Needed for ES modules
-const __dirname = path.dirname(new URL(import.meta.url).pathname);
+// parse JSON bodies
+app.use(express.json());
 
-// middleware
-app.use(bodyParser.json());
-app.use(express.static(__dirname));  // serve index.html, script.js, etc.
+// serve static files (index.html, style.css, script.js)
+app.use(express.static("."));
 
-// ---------- POST /save ----------
+// POST /save: save input text + analyzed tokens
 app.post("/save", (req, res) => {
-  const { text, analyzed } = req.body || {};
+  const { text, analyzed } = req.body;
 
-  if (!text) {
-    return res.status(400).json({ ok: false, error: "No text provided." });
-  }
+  if (!text) return res.status(400).json({ success: false, error: "No text provided" });
 
-  const line =
-    "\n--- INPUT ---\n" +
-    text +
-    "\n--- ANALYZED ---\n" +
-    JSON.stringify(analyzed) +
-    "\n-------------\n";
+  const filePath = path.join("storage", "inputs.txt");
+  const line = JSON.stringify({ text, analyzed }) + "\n";
 
-  const outputPath = path.join(__dirname, "storage", "inputs.txt");
-
-  fs.appendFile(outputPath, line, (err) => {
+  fs.appendFile(filePath, line, (err) => {
     if (err) {
-      console.error("Write error:", err);
-      return res.status(500).json({ ok: false, error: "Write failed." });
+      console.error("Failed to write:", err);
+      return res.status(500).json({ success: false, error: err.message });
     }
-
-    console.log("Saved to inputs.txt");
-    res.json({ ok: true, saved: true });
+    res.json({ success: true });
   });
 });
 
-// start server
 app.listen(PORT, () => {
-  console.log("Server running on http://localhost:" + PORT);
+  console.log(`Server running at http://localhost:${PORT}`);
 });
-
