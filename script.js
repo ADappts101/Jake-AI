@@ -10,12 +10,10 @@ async function init() {
 
 init();
 
-// UI elements
 const input = document.getElementById("userInput");
 const saveBtn = document.getElementById("saveBtn");
 const responseBox = document.getElementById("response");
 
-// When clicking SAVE
 saveBtn.addEventListener("click", async () => {
   const text = input.value.trim();
 
@@ -33,7 +31,7 @@ saveBtn.addEventListener("click", async () => {
   // Show on page
   responseBox.textContent = JSON.stringify(analyzed, null, 2);
 
-  // Step 3: send to backend (server.js) to store in inputs.txt
+  // Step 3: send to backend
   try {
     const res = await fetch("/save", {
       method: "POST",
@@ -42,8 +40,15 @@ saveBtn.addEventListener("click", async () => {
     });
 
     const out = await res.json();
-    console.log("Server:", out);
+
+    if (out.success) {
+      responseBox.textContent += "\n\n✅ Saved!";
+      input.value = ""; // optional: clear input
+    } else {
+      responseBox.textContent += "\n\n❌ Failed to save: " + (out.error || "Unknown error");
+    }
   } catch (err) {
     console.error("Server save failed:", err);
+    responseBox.textContent += "\n\n❌ Server save failed: " + err.message;
   }
 });
