@@ -25,7 +25,7 @@ saveBtn.addEventListener("click", async () => {
   responseBox.textContent = JSON.stringify(analyzed, null, 2);
 
   try {
-    const res = await fetch("/save", {
+    const res = await fetch("https://jake-ai.onrender.com/save", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, analyzed })
